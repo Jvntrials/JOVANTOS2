@@ -6,7 +6,7 @@ import { ResultsTable } from './components/ResultsTable';
 import { Loader } from './components/Loader';
 import { analyzeSyllabusAndExam } from './services/geminiService';
 import { TOSResult } from './types';
-import { SYLLABUS_PLACEHOLDER, EXAM_PLACEHOLDER, SAMPLE_ANALYSIS_RESULT } from './constants';
+import { SYLLABUS_PLACEHOLDER, EXAM_PLACEHOLDER } from './constants';
 
 const App: React.FC = () => {
   const [syllabus, setSyllabus] = useState<string>('');
@@ -14,26 +14,28 @@ const App: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<TOSResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isApiKeyMissing, setIsApiKeyMissing] = useState<boolean>(false);
+  const [apiKey, setApiKey] = useState<string>('');
 
   useEffect(() => {
-    if (!process.env.API_KEY) {
-      setIsApiKeyMissing(true);
+    const savedKey = localStorage.getItem('gemini-api-key');
+    if (savedKey) {
+      setApiKey(savedKey);
     }
   }, []);
 
+  const handleSaveApiKey = (key: string) => {
+    const trimmedKey = key.trim();
+    setApiKey(trimmedKey);
+    if (trimmedKey) {
+      localStorage.setItem('gemini-api-key', trimmedKey);
+    } else {
+      localStorage.removeItem('gemini-api-key');
+    }
+  };
+
   const handleAnalyze = useCallback(async () => {
-    if (isApiKeyMissing) {
-      setIsLoading(true);
-      setError(null);
-      setAnalysisResult(null);
-      setSyllabus(SYLLABUS_PLACEHOLDER);
-      setExam(EXAM_PLACEHOLDER);
-      // Simulate API call for demo
-      setTimeout(() => {
-        setAnalysisResult(SAMPLE_ANALYSIS_RESULT);
-        setIsLoading(false);
-      }, 1500);
+    if (!apiKey) {
+      setError('Please configure your Gemini API key in the header to use the analysis feature.');
       return;
     }
 
@@ -47,7 +49,7 @@ const App: React.FC = () => {
     setAnalysisResult(null);
 
     try {
-      const result = await analyzeSyllabusAndExam(syllabus, exam);
+      const result = await analyzeSyllabusAndExam(syllabus, exam, apiKey);
       setAnalysisResult(result);
     } catch (err) {
       console.error(err);
@@ -55,7 +57,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [syllabus, exam, isApiKeyMissing]);
+  }, [syllabus, exam, apiKey]);
 
   const handleUseSampleData = () => {
     setSyllabus(SYLLABUS_PLACEHOLDER);
@@ -73,7 +75,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
-      <Header isApiKeyMissing={isApiKeyMissing} />
+      <Header apiKey={apiKey} onSaveApiKey={handleSaveApiKey} />
       <main className="container mx-auto p-4 md:p-8">
         <InputSection
           syllabus={syllabus}
@@ -84,7 +86,7 @@ const App: React.FC = () => {
           onUseSampleData={handleUseSampleData}
           onClear={handleClear}
           isLoading={isLoading}
-          isApiKeyMissing={isApiKeyMissing}
+          isApiKeySet={!!apiKey}
         />
         
         {isLoading && <Loader />}
