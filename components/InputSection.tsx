@@ -10,7 +10,7 @@ interface InputSectionProps {
   onUseSampleData: () => void;
   onClear: () => void;
   isLoading: boolean;
-  isApiKeyMissing: boolean;
+  isApiKeySet: boolean;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
@@ -22,7 +22,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
   onUseSampleData,
   onClear,
   isLoading,
-  isApiKeyMissing,
+  isApiKeySet,
 }) => {
   const commonTextareaClasses = "w-full h-80 p-4 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out resize-y bg-slate-50";
 
@@ -77,11 +77,11 @@ export const InputSection: React.FC<InputSectionProps> = ({
 
         <button
           onClick={onAnalyze}
-          disabled={isLoading || (!isApiKeyMissing && (!syllabus.trim() || !exam.trim()))}
+          disabled={isLoading || !isApiKeySet || !syllabus.trim() || !exam.trim()}
           className="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-white bg-indigo-600 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          title={isApiKeyMissing ? 'Runs a sample analysis. An API key is required to analyze your own content.' : 'Analyze the content using AI'}
+          title={!isApiKeySet ? 'Please configure your Gemini API key in the header first.' : 'Analyze the content using AI'}
         >
-          {isLoading ? 'Analyzing...' : (isApiKeyMissing ? 'Run Demo Analysis' : 'Analyze Content')}
+          {isLoading ? 'Analyzing...' : 'Analyze Content'}
         </button>
       </div>
     </div>
