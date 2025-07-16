@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Header } from './components/Header';
 import { InputSection } from './components/InputSection';
 import { ResultsTable } from './components/ResultsTable';
@@ -14,31 +14,8 @@ const App: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<TOSResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>('');
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('gemini-api-key');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-  }, []);
-
-  const handleSaveApiKey = (key: string) => {
-    const trimmedKey = key.trim();
-    setApiKey(trimmedKey);
-    if (trimmedKey) {
-      localStorage.setItem('gemini-api-key', trimmedKey);
-    } else {
-      localStorage.removeItem('gemini-api-key');
-    }
-  };
 
   const handleAnalyze = useCallback(async () => {
-    if (!apiKey) {
-      setError('Please configure your Gemini API key in the header to use the analysis feature.');
-      return;
-    }
-
     if (!syllabus.trim() || !exam.trim()) {
       setError('Please provide both syllabus and exam content.');
       return;
@@ -49,7 +26,7 @@ const App: React.FC = () => {
     setAnalysisResult(null);
 
     try {
-      const result = await analyzeSyllabusAndExam(syllabus, exam, apiKey);
+      const result = await analyzeSyllabusAndExam(syllabus, exam);
       setAnalysisResult(result);
     } catch (err) {
       console.error(err);
@@ -57,7 +34,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [syllabus, exam, apiKey]);
+  }, [syllabus, exam]);
 
   const handleUseSampleData = () => {
     setSyllabus(SYLLABUS_PLACEHOLDER);
@@ -75,7 +52,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
-      <Header apiKey={apiKey} onSaveApiKey={handleSaveApiKey} />
+      <Header />
       <main className="container mx-auto p-4 md:p-8">
         <InputSection
           syllabus={syllabus}
@@ -86,7 +63,6 @@ const App: React.FC = () => {
           onUseSampleData={handleUseSampleData}
           onClear={handleClear}
           isLoading={isLoading}
-          isApiKeySet={!!apiKey}
         />
         
         {isLoading && <Loader />}
