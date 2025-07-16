@@ -50,8 +50,11 @@ const responseSchema = {
   required: ["tableRows", "totals"],
 };
 
-export const analyzeSyllabusAndExam = async (syllabus: string, exam: string): Promise<TOSResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const analyzeSyllabusAndExam = async (apiKey: string, syllabus: string, exam: string): Promise<TOSResult> => {
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please provide a valid API key.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
     As an expert in educational assessment and curriculum design, your task is to create a Table of Specifications (TOS) by analyzing the provided syllabus and exam content.
@@ -80,22 +83,33 @@ export const analyzeSyllabusAndExam = async (syllabus: string, exam: string): Pr
     Now, perform the analysis and generate the complete JSON output for the Table of Specifications.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-      temperature: 0.1,
-    },
-  });
+  try {
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
+        temperature: 0.1,
+        },
+    });
 
-  const jsonText = response.text.trim();
-  const parsedResult = JSON.parse(jsonText);
-  
-  if (!parsedResult.tableRows || !parsedResult.totals) {
-      throw new Error("API returned data in an unexpected format.");
+    const jsonText = response.text.trim();
+    const parsedResult = JSON.parse(jsonText);
+    
+    if (!parsedResult.tableRows || !parsedResult.totals) {
+        throw new Error("API returned data in an unexpected format.");
+    }
+
+    return parsedResult as TOSResult;
+  } catch (error) {
+     if (error instanceof Error) {
+        // Rethrow specific error messages for better handling in the UI
+        if (error.message.includes('API_KEY_INVALID')) {
+             throw new Error("API key not valid. Please pass a valid API key.");
+        }
+     }
+     // Rethrow other errors
+     throw error;
   }
-
-  return parsedResult as TOSResult;
 };
