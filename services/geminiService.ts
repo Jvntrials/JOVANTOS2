@@ -50,11 +50,8 @@ const responseSchema = {
   required: ["tableRows", "totals"],
 };
 
-export const analyzeSyllabusAndExam = async (syllabus: string, exam: string, apiKey: string): Promise<TOSResult> => {
-  if (!apiKey) {
-    throw new Error("Gemini API Key is not provided. Please configure it in the header.");
-  }
-  const ai = new GoogleGenAI({ apiKey });
+export const analyzeSyllabusAndExam = async (syllabus: string, exam: string): Promise<TOSResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
     As an expert in educational assessment and curriculum design, your task is to create a Table of Specifications (TOS) by analyzing the provided syllabus and exam content.
