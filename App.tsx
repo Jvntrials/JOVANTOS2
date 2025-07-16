@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { InputSection } from './components/InputSection';
 import { ResultsTable } from './components/ResultsTable';
@@ -7,17 +7,40 @@ import { Loader } from './components/Loader';
 import { analyzeSyllabusAndExam } from './services/geminiService';
 import { TOSResult } from './types';
 import { SYLLABUS_PLACEHOLDER, EXAM_PLACEHOLDER } from './constants';
+import { ApiKeySetup } from './components/ApiKeySetup';
 
 const App: React.FC = () => {
+  const [apiKey, setApiKey] = useState<string>('');
   const [syllabus, setSyllabus] = useState<string>('');
   const [exam, setExam] = useState<string>('');
   const [analysisResult, setAnalysisResult] = useState<TOSResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gemini_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+    }
+  }, []);
+
+  const handleApiKeySubmit = (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem('gemini_api_key', newKey);
+  };
+
+  const handleClearApiKey = () => {
+    setApiKey('');
+    localStorage.removeItem('gemini_api_key');
+  };
+
   const handleAnalyze = useCallback(async () => {
     if (!syllabus.trim() || !exam.trim()) {
       setError('Please provide both syllabus and exam content.');
+      return;
+    }
+    if (!apiKey) {
+      setError('API Key is not configured.');
       return;
     }
 
@@ -26,15 +49,22 @@ const App: React.FC = () => {
     setAnalysisResult(null);
 
     try {
-      const result = await analyzeSyllabusAndExam(syllabus, exam);
+      const result = await analyzeSyllabusAndExam(apiKey, syllabus, exam);
       setAnalysisResult(result);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred. Please check the console.');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      
+      if (errorMessage.toLowerCase().includes('api key not valid')) {
+          setError('Your Gemini API Key is invalid or expired. Please enter a valid one.');
+          handleClearApiKey(); // Clear the invalid key
+      } else {
+          setError(`${errorMessage} Please check the console for details.`);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [syllabus, exam]);
+  }, [apiKey, syllabus, exam]);
 
   const handleUseSampleData = () => {
     setSyllabus(SYLLABUS_PLACEHOLDER);
@@ -49,10 +79,13 @@ const App: React.FC = () => {
     setError(null);
   };
 
+  if (!apiKey) {
+    return <ApiKeySetup onKeySubmit={handleApiKeySubmit} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
-      <Header />
+      <Header onClearApiKey={handleClearApiKey} />
       <main className="container mx-auto p-4 md:p-8">
         <InputSection
           syllabus={syllabus}
